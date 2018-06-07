@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+	<title>nodeTest</title>
+	<meta charset="utf-8">
+  <script type="text/javascript" src="game/three.min.js"></script>
+	<script type="text/javascript" src="game/enchant.min.js"></script>
+  <script type="text/javascript" src="/socket.io/socket.io.js"></script>
+
+	<style>
+	.wrapper{
+		position: relative;
+	}
+	.contents{
+
+	}
+	.TouchText{
+		position: absolute;
+		width: 200px;
+		height: 200px;
+		bottom: 0px;
+		background: white;
+		border: 1px solid red;
+		font-size: 10px;
+	}
+	</style>
+  <link rel="icon" href="data:;base64,iVBORw0KGgo=">
+</head>
+
+<body>
+	<div class="wrapper">
+		<div id="container" class = "contents"></div>
+		<div id="TouchText" class="TouchText">Text</div>
+	</div>
+
+	<script>
+<<<<<<< Updated upstream
+    //var materials = [];
+=======
+	  var materials = [];
+>>>>>>> Stashed changes
+		var camera, sphere, material, scene, renderer;
+		var isUserInteracting = false, //クリックしているか
+			onMouseDownMouseX = 0, //マウスのX座標
+			onMouseDownMouseY = 0, //マウスのY座標
+			lon = 0,
+			onMouseDownLon = 0,
+			lat = 0,
+			onMouseDownLat = 0,
+			phi = 0,
+			theta = 0;
+		var pos = 1;
+		var sphereAngleOffset = 90;
+		var numoftouch = 0;
+		var MousePosX = 0;
+		var MousePosY = 0;
+		var isGesture = false; //ジェスチャがあるか
+		var rotation = 0;
+		var scale = 1;
+
+		enchant();
+		var game;
+		gameInit();
+		init();
+<<<<<<< Updated upstream
+    
+    var materials = new Array(65);
+    
+=======
+
+>>>>>>> Stashed changes
+    //TODO
+    var socket = io.connect(); // C02. ソケットへの接続
+    socket.emit("client_to_server",{hello: "world"});
+    socket.on("server_to_client",function(data){console.log(data.hello)});
+<<<<<<< Updated upstream
+    
+=======
+
+>>>>>>> Stashed changes
+		animate();
+
+		function init() {
+
+			var container, mesh;
+
+			container = document.getElementById('container');
+
+			camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 1100);
+			camera.target = new THREE.Vector3(0, 0, 0);
+
+			scene = new THREE.Scene();
+
+			var geometry = new THREE.SphereGeometry(500, 60, 40);
+			geometry.scale(1, 1, -1);
+      
+      material = new THREE.MeshBasicMaterial({map : THREE.ImageUtils.loadTexture("Resources/path1.jpg")});
+<<<<<<< Updated upstream
+      // for (var i = 1; i <= 65; i++){
+      //   materials[i - 1] = new THREE.MeshBasicMaterial({map : THREE.ImageUtils.loadTexture("Resources/path" + i + ".jpg")});
+      // }
+      
+			// sphere = new THREE.Mesh(geometry, materials[0]);
+      sphere = new THREE.Mesh(geometry, material);
+=======
+      for (var i = 1; i <= 65; i++){
+        materials.push(new THREE.MeshBasicMaterial({map : THREE.ImageUtils.loadTexture("Resources/path" + i + ".jpg")}));
+      }
+
+			sphere = new THREE.Mesh(geometry, materials[0]);
+>>>>>>> Stashed changes
+			sphere.rotation.y = THREE.Math.degToRad(sphereAngleOffset);
+
+			scene.add(sphere);
+
+
+			renderer = new THREE.WebGLRenderer();
+			renderer.setPixelRatio(window.devicePixelRatio);
+			renderer.setSize(window.innerWidth, window.innerHeight);
+			container.appendChild(renderer.domElement);
+
+			document.addEventListener('mousedown', onDocumentMouseDown, false);
+			document.addEventListener('mousemove', onDocumentMouseMove, false);
+			document.addEventListener('mouseup', onDocumentMouseUp, false);
+			document.addEventListener('mousewheel', onDocumentMouseWheel, false); //firefox以外
+			document.addEventListener('DOMMouseScroll', onDocumentMouseWheel, false); //firefox
+			window.addEventListener('resize', onWindowResize, false);
+			window.addEventListener('gesturestart',onGestureStart, false);
+			window.addEventListener('gesturechange',onGestureChange, false);
+			window.addEventListener('gestureend',onGestureEnd, false);
+
+			if ("ongesturestart" in window) {
+					console.log("ok");
+			 	} else {
+					console.log("no");
+				}
+		}
+
+		function gameInit() {
+			game = new Game(window.innerWidth, window.innerHeight);
+			game.onload = function() {
+			game.height = window.innerHeight;
+			game.width = window.innerWidth;
+			}
+			game.start();
+		}
+
+
+		function onWindowResize() {
+
+			camera.aspect = window.innerWidth / window.innerHeight;
+			camera.updateProjectionMatrix();
+
+			renderer.setSize(window.innerWidth, window.innerHeight);
+			game.height = window.innerHeight;
+			game.width = window.innerWidth;
+			// game.vPad.setSize(window.innerWidth, window.innerHeight);
+
+		}
+
+		function onDocumentMouseDown(event) {
+			event.preventDefault();
+
+			isUserInteracting = true;
+
+			onMouseDownMouseX = event.clientX;
+			onMouseDownMouseY = event.clientY;
+
+			onPointerDownLon = lon;
+			onPointerDownLat = lat;
+
+		}
+
+		function onDocumentMouseMove(event) {
+			MousePosX = event.clientX;
+			MousePosY = event.clientY;
+			if(isUserInteracting == true){
+				lon = (onMouseDownMouseX - event.clientX) * 0.1 + onPointerDownLon;
+				lat = (event.clientY - onMouseDownMouseY) * 0.1 + onPointerDownLat;
+			}
+		}
+
+		function onDocumentMouseUp(event) {
+			isUserInteracting = false;
+		}
+
+		function onDocumentMouseWheel(event) {
+			event.preventDefault();
+			// WebKit
+			if (event.wheelDeltaY) {
+				pos += event.wheelDeltaY * 0.05;
+				// Opera / Explorer 9
+			} else if (event.wheelDelta) {
+				pos += event.wheelDelta * 0.05;
+				// Firefox
+			} else if (event.detail) {
+				pos -= event.detail * 1.0;
+			}
+			pos = Math.round(pos);
+			if(pos < 1) pos = 1;
+			if(pos > 65) pos = 65;
+
+<<<<<<< Updated upstream
+			// scene.remove(sphere)
+			// var geometry = new THREE.SphereGeometry(500, 60, 40);
+			// geometry.scale(1, 1, -1);
+			// sphere = new THREE.Mesh(geometry, materials[pos - 1]);
+			// sphere.rotation.y = THREE.Math.degToRad(sphereAngleOffset);
+			// scene.add(sphere)
+
+      
+			var filepath = "Resources/path" + pos + ".jpg";
+			THREE.ImageUtils.loadTexture(filepath, null, function(tex) {
+				material.map.dispose();
+				material.map = tex;
+				material.map.needsUpdate = true;
+				sphere.rotation.y = THREE.Math.degToRad(sphereAngleOffset);
+			});
+=======
+			scene.remove(sphere)
+			var geometry = new THREE.SphereGeometry(500, 60, 40);
+			geometry.scale(1, 1, -1);
+			sphere = new THREE.Mesh(geometry, materials[pos - 1]);
+			sphere.rotation.y = THREE.Math.degToRad(sphereAngleOffset);
+			scene.add(sphere)
+>>>>>>> Stashed changes
+		}
+
+		function onGestureStart(event) {
+			isGesture = true;
+		}
+
+		function onGestureChange(event) {
+			lon += event.rotation * 0.2;
+			rotation = event.rotation;
+			scale = event.scale;
+		}
+
+		function onGestureEnd(event) {
+			isGesture = false;
+		}
+
+		function animate() {
+			requestAnimationFrame(animate);
+			update();
+			TouchRender();
+		}
+
+		function update() {
+			lat = Math.max(-85, Math.min(85, lat));
+			phi = THREE.Math.degToRad(90 - lat);
+			theta = THREE.Math.degToRad(lon);
+
+			camera.target.x = 500 * Math.sin(phi) * Math.cos(theta);
+			camera.target.y = 500 * Math.cos(phi);
+			camera.target.z = 500 * Math.sin(phi) * Math.sin(theta);
+
+			camera.lookAt(camera.target);
+
+
+			var keyVector = new THREE.Vector3(0, 0, 0);
+			if (game.input.up) keyVector.x += 1;
+			if (game.input.left) keyVector.z -= 1;
+			if (game.input.down) keyVector.x -= 1;
+			if (game.input.right) keyVector.z += 1;
+
+			if (!(keyVector.x == 0 && keyVector.z == 0)) {
+					if (keyVector.x > 0){
+						pos += 1;
+					}
+					if (keyVector.x < 0){
+						pos -= 1;
+					}
+					if(pos < 1) pos = 1;
+					if(pos > 65) pos = 65;
+
+					var filepath = "Resources/path_" + pos + ".jpg";
+					document.getElementById("TouchText").innerHTML = filepath;
+					THREE.ImageUtils.loadTexture(filepath, null, function(tex) {
+						material.map.dispose();
+						material.map = tex;
+						material.map.needsUpdate = true;
+						sphere.rotation.y = THREE.Math.degToRad(sphereAngleOffset);
+					});
+			}
+			renderer.render(scene, camera);
+		}
+
+		//タッチ場所の可視化プログラム
+		function TouchRender(){
+			var str = "click : " + isUserInteracting + "<br>" + "Click pos X : " + onMouseDownMouseX + "<br>" + "Click pos Y : " + onMouseDownMouseY + "<br>" + "mouse pos X : " + MousePosX + "<br>" + "mouse pos Y : " + MousePosY + "<br>" + "filepath : " + pos + ".jpg";
+			str = str + "<br>" + "gesture : " + isGesture + "<br>" + "rotation : " + rotation + "<br>" + "scale : " + scale;
+			var debug = str + "<br>" + "debug : " + "<br>" + "pos : " + pos;
+			document.getElementById("TouchText").innerHTML = str;
+			// document.getElementById("TouchText").innerHTML = debug;
+		}
+	</script>
+</body>
+
+</html>

@@ -1,0 +1,22 @@
+{
+  "name": "nodetest",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node app.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/naoya-mizuguchi/nodeTest.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/naoya-mizuguchi/nodeTest/issues"
+  },
+  "homepage": "https://github.com/naoya-mizuguchi/nodeTest#readme",
+  "dependencies": {
+    "socket.io": "^2.1.1"
+  }
+}

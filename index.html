@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+	<title>nodeTest</title>
+	<meta charset="utf-8">
+  <script type="text/javascript" src="game/three.min.js"></script>
+	<script type="text/javascript" src="game/enchant.min.js"></script>
+  <script type="text/javascript" src="/socket.io/socket.io.js"></script>
+
+	<style>
+	.wrapper{
+		position: relative;
+	}
+	.contents{
+
+	}
+	.TouchText{
+		position: absolute;
+		width: 200px;
+		height: 200px;
+		bottom: 0px;
+		background: white;
+		border: 1px solid red;
+		font-size: 10px;
+	}
+	</style>
+  <link rel="icon" href="data:;base64,iVBORw0KGgo=">
+</head>
+
+<body>
+	<div class="wrapper">
+		<div id="container" class = "contents"></div>
+		<div id="TouchText" class="TouchText">Text</div>
+	</div>
+
+  <script>
+    //userAgent
+    var _ua = (function(u){
+    return {
+    Tablet:(u.indexOf("windows") != -1 && u.indexOf("touch") != -1)
+      || u.indexOf("ipad") != -1
+      || (u.indexOf("android") != -1 && u.indexOf("mobile") == -1)
+      || (u.indexOf("firefox") != -1 && u.indexOf("tablet") != -1)
+      || u.indexOf("kindle") != -1
+      || u.indexOf("silk") != -1
+      || u.indexOf("playbook") != -1,
+    Mobile:(u.indexOf("windows") != -1 && u.indexOf("phone") != -1)
+      || u.indexOf("iphone") != -1
+      || u.indexOf("ipod") != -1
+      || (u.indexOf("android") != -1 && u.indexOf("mobile") != -1)
+      || (u.indexOf("firefox") != -1 && u.indexOf("mobile") != -1)
+      || u.indexOf("blackberry") != -1
+    }
+    })(window.navigator.userAgent.toLowerCase());
+  </script>
+
+  <script>
+  //gyroorientation
+  var eyem = new THREE.Quaternion().setFromEuler(new THREE.Euler(-Math.PI / 2, 0, 0));
+  var d2r = Math.PI / 180;
+  var getOrientation = function () {
+   if (window.screen.orientation) return window.screen.orientation.angle;
+   if (typeof window.orientation === "number") return window.orientation;
+   if (window.screen.mozOrientation) return {
+       "portrait-primary": 0,
+       "portrait-secondary": 180,
+       "landscape-primary": 90,
+       "landscape-secondary": 270,
+   }[window.screen.mozOrientation];
+   return 0;
+  };
+  var gyroQuaternion = new THREE.Quaternion();
+  var gyroAvailable = true;
+
+  function gyroSensor(ev){    
+    ev.preventDefault();
+    var angle = getOrientation();
+    if(ev.alpha == undefined){
+      gyroAvailable = false;
+      return;
+    }
+    var alpha = ev.alpha || 0;
+    var beta = ev.beta || 0;
+    var gamma = ev.gamma || 0;
+    if (alpha === 0 && beta === 0 && gamma === 0) return;
+    var rotm = new THREE.Quaternion().setFromEuler(new THREE.Euler(beta * d2r, alpha * d2r, -gamma * d2r, "YXZ"));//rotType));
+    var devm = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, -angle * d2r, 0));
+    rotm.multiply(devm).multiply(eyem); //rot = (rot x dev) x eye
+    gyroQuaternion.copy(rotm);
+  };
+  </script>
+  
+	<script>
+<<<<<<< HEAD
+	  var materials = [];
+=======
+    var materials = new Array(65);
+>>>>>>> 68a9bb3bcf3de2605e2b1f4a7bbbc11d5d462e93
+		var camera, sphere, material, scene, renderer;
+		var isUserInteracting = false, //クリックしているか
+			onMouseDownMouseX = 0, //マウスのX座標
+			onMouseDownMouseY = 0, //マウスのY座標
+			lon = 0,
+			onMouseDownLon = 0,
+			lat = 0,
+			onMouseDownLat = 0,
+			phi = 0,
+			theta = 0;
+		var pos = 1;
+		var sphereAngleOffset = 90;
+		var numoftouch = 0;
+		var MousePosX = 0;
+		var MousePosY = 0;
+		var isGesture = false; //ジェスチャがあるか
+		var rotation = 0;
+		var scale = 1;
+		var touch_num = 0;
+		var touchposX = [];
+		var touchposY = []
+
+    var before_touch_pos_x = 0;
+    var before_touch_pos_y = 0;
+    var diff_sum_touch_pos_x = 0;
+    var diff_sum_touch_pos_y = 0;
+    var pos_change_flg = false;
+
+    
+    var UserAgent = "";
+		if (_ua.Tablet) {
+			UserAgent = "Tablet";
+		} else if (_ua.Mobile) {
+			UserAgent = "Mobile";
+		} else {
+			UserAgent = "PC";
+		}
+
+		enchant();
+		var game;
+		gameInit();
+		init();
+<<<<<<< HEAD
+
+    //TODO
+    var socket = io.connect(); // C02. ソケットへの接続
+    socket.emit("client_to_server",{hello: "world"});
+    socket.on("server_to_client",function(data){console.log(data.hello)});
+
+=======
+        
+    var socket = io.connect(); // C02. ソケットへの接続
+    socket.on("server_to_client",function(data){Change_pos(data.position)});
+    
+>>>>>>> 68a9bb3bcf3de2605e2b1f4a7bbbc11d5d462e93
+		animate();
+
+		function init() {
+
+			var container, mesh;
+
+			container = document.getElementById('container');
+
+			camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 1100);
+			camera.target = new THREE.Vector3(0, 0, 0);
+
+			scene = new THREE.Scene();
+
+			var geometry = new THREE.SphereGeometry(500, 60, 40);
+			geometry.scale(1, 1, -1);
+<<<<<<< HEAD
+
+      material = new THREE.MeshBasicMaterial({map : THREE.ImageUtils.loadTexture("Resources/path1.jpg")});
+      for (var i = 1; i <= 65; i++){
+        materials.push(new THREE.MeshBasicMaterial({map : THREE.ImageUtils.loadTexture("Resources/path" + i + ".jpg")}));
+      }
+
+=======
+      
+      material = new THREE.MeshBasicMaterial({map:THREE.ImageUtils.loadTexture("Resources/path1.jpg")});
+      for (var i = 1; i<=65; i++){
+        materials[i-1] = new THREE.MeshBasicMaterial({map : THREE.ImageUtils.loadTexture("Resources/path" + i + ".jpg")});
+      }
+      
+>>>>>>> 68a9bb3bcf3de2605e2b1f4a7bbbc11d5d462e93
+			sphere = new THREE.Mesh(geometry, materials[0]);
+			sphere.rotation.y = THREE.Math.degToRad(sphereAngleOffset);
+
+			scene.add(sphere);
+
+
+			renderer = new THREE.WebGLRenderer();
+			renderer.setPixelRatio(window.devicePixelRatio);
+			renderer.setSize(window.innerWidth, window.innerHeight);
+			container.appendChild(renderer.domElement);
+
+			document.addEventListener('mousedown', onDocumentMouseDown, false);
+			document.addEventListener('mousemove', onDocumentMouseMove, false);
+			document.addEventListener('mouseup', onDocumentMouseUp, false);
+			document.addEventListener('mousewheel', onDocumentMouseWheel, false); //firefox以外
+			document.addEventListener('DOMMouseScroll', onDocumentMouseWheel, false); //firefox
+			window.addEventListener('resize', onWindowResize, false);
+			window.addEventListener('gesturestart',onGestureStart, false);
+			window.addEventListener('gesturechange',onGestureChange, false);
+			window.addEventListener('gestureend',onGestureEnd, false);
+
+			if ("ongesturestart" in window) {
+					console.log("ok");
+			 	} else {
+					console.log("no");
+				}
+      
+      gyroAvailable = false;
+			if (window.DeviceMotionEvent) {
+				gyroAvailable = true;
+			}
+			if (gyroAvailable) {
+				window.addEventListener("deviceorientation", gyroSensor, false);
+			}
+
+      if (window.TouchEvent) {
+				// タッチを開始すると実行されるイベント
+				document.addEventListener("touchstart", onDocumentTouchDown, false);
+				// タッチしたまま平行移動すると実行されるイベント
+				document.addEventListener("touchmove", onDocumentTouchMove, false);
+				// タッチを終了すると実行されるイベント
+				document.addEventListener("touchend", onDocumentTouchEnd, false);
+			}
+		}
+
+		function gameInit() {
+			game = new Game(window.innerWidth, window.innerHeight);
+			game.onload = function() {
+			game.height = window.innerHeight;
+			game.width = window.innerWidth;
+			}
+			game.start();
+		}
+
+
+		function onWindowResize() {
+
+			camera.aspect = window.innerWidth / window.innerHeight;
+			camera.updateProjectionMatrix();
+
+			renderer.setSize(window.innerWidth, window.innerHeight);
+			game.height = window.innerHeight;
+			game.width = window.innerWidth;
+		}
+
+		function onDocumentMouseDown(event) {
+			event.preventDefault();
+
+			isUserInteracting = true;
+
+			onMouseDownMouseX = event.clientX;
+			onMouseDownMouseY = event.clientY;
+
+			onPointerDownLon = lon;
+			onPointerDownLat = lat;
+
+		}
+
+		function onDocumentMouseMove(event) {
+			MousePosX = event.clientX;
+			MousePosY = event.clientY;
+			if(isUserInteracting == true){
+				lon = (onMouseDownMouseX - event.clientX) * 0.1 + onPointerDownLon;
+				lat = (event.clientY - onMouseDownMouseY) * 0.1 + onPointerDownLat;
+			}
+		}
+
+		function onDocumentMouseUp(event) {
+			isUserInteracting = false;
+		}
+
+		function onDocumentMouseWheel(event) {
+			event.preventDefault();
+			// WebKit
+			if (event.wheelDeltaY) {
+				pos += event.wheelDeltaY * 0.05;
+				// Opera / Explorer 9
+			} else if (event.wheelDelta) {
+				pos += event.wheelDelta * 0.05;
+				// Firefox
+			} else if (event.detail) {
+				pos -= event.detail * 1.0;
+			}
+			pos = Math.round(pos);
+			if(pos < 1) pos = 1;
+			if(pos > 65) pos = 65;
+
+<<<<<<< HEAD
+			scene.remove(sphere)
+=======
+			scene.remove(sphere);
+>>>>>>> 68a9bb3bcf3de2605e2b1f4a7bbbc11d5d462e93
+			var geometry = new THREE.SphereGeometry(500, 60, 40);
+			geometry.scale(1, 1, -1);
+			sphere = new THREE.Mesh(geometry, materials[pos - 1]);
+			sphere.rotation.y = THREE.Math.degToRad(sphereAngleOffset);
+<<<<<<< HEAD
+			scene.add(sphere)
+=======
+			scene.add(sphere);
+
+      socket.emit("client_to_server_broadcast",{position: pos});
+>>>>>>> 68a9bb3bcf3de2605e2b1f4a7bbbc11d5d462e93
+		}
+
+		function onGestureStart(event) {
+			isGesture = true;
+		}
+
+		function onGestureChange(event) {
+			lon += event.rotation * 0.2;
+			rotation = event.rotation;
+			scale = event.scale;
+		}
+
+		function onGestureEnd(event) {
+			isGesture = false;
+		}
+
+    	function onDocumentTouchDown(event) {
+			event.preventDefault();
+			isUserInteracting = true;
+			var touches = event.touches;
+			var l = touches.length;
+			touch_num = l;
+			if (l === 1 && isUserInteracting === true) {
+				onPointerDownPointerX = touches[0].clientX;
+				onPointerDownPointerY = touches[0].clientY;
+				onPointerDownLon = lon;
+				onPointerDownLat = lat;
+        before_touch_pos_x = touches[0].clientX;
+        before_touch_pos_y = touches[0].clientY;
+			} else {
+				for (var i = 0; i < l; ++i) {
+					var touch = touches[i];
+				}
+			}
+
+			//表示用
+			touchposX.length = 0;
+			touchposY.length = 0;
+			for (var i = 0; i < touch_num; i++){
+				touchposX.push(touches[i].clientX);
+				touchposY.push(touches[i].clientY);
+			}
+		}
+
+    
+		function onDocumentTouchMove(event) {
+			var touches = event.touches;
+			var l = touches.length;
+			if (l === 1 && isUserInteracting === true) {
+				lon = (onPointerDownPointerX - touches[0].screenX) * 0.1 + onPointerDownLon;
+				lat = (touches[0].screenY - onPointerDownPointerY) * 0.1 + onPointerDownLat;
+        
+        diff_sum_touch_pos_x += touches[0].clientX - before_touch_pos_x;
+        diff_sum_touch_pos_y += touches[0].clientY - before_touch_pos_y;
+        
+        before_touch_pos_x = touches[0].clientX;
+        before_touch_pos_y = touches[0].clientY;
+
+			} else {
+				for (var i = 0; i < l; ++i) {
+					var touch = touches[i];
+				}
+			}
+      
+      if(diff_sum_touch_pos_x > 50) {pos += 1; diff_sum_touch_pos_x -= 50; pos_change_flg = true;}
+      if(diff_sum_touch_pos_y > 50) {pos += 1; diff_sum_touch_pos_y -= 50; pos_change_flg = true;}
+      if(diff_sum_touch_pos_x < -50) {pos -= 1; diff_sum_touch_pos_x += 50; pos_change_flg = true;}
+      if(diff_sum_touch_pos_y < -50) {pos -= 1; diff_sum_touch_pos_y += 50; pos_change_flg = true;}
+
+      if (pos_change_flg){
+        if(pos < 1) pos = 1;
+	  		if(pos > 65) pos = 65;
+
+		  	scene.remove(sphere);
+			  var geometry = new THREE.SphereGeometry(500, 60, 40);
+			  geometry.scale(1, 1, -1);
+			  sphere = new THREE.Mesh(geometry, materials[pos - 1]);
+			  sphere.rotation.y = THREE.Math.degToRad(sphereAngleOffset);
+			  scene.add(sphere);
+
+        socket.emit("client_to_server_broadcast",{position: pos});
+        
+        pos_change_flg = false;
+      }
+      
+      //表示用
+			touchposX.length = 0;
+			touchposY.length = 0;
+			for (var i = 0; i < touch_num; i++){
+				touchposX.push(touches[i].clientX);
+				touchposY.push(touches[i].clientY);
+			}
+
+		}
+
+		function onDocumentTouchEnd(event) {
+			isUserInteracting = false;
+      before_touch_pos_x = 0;
+      before_touch_pos_y = 0;
+      diff_sum_touch_pos_x = 0;
+      diff_sum_touch_pos_y = 0;
+		}
+
+    
+		function animate() {
+			requestAnimationFrame(animate);
+			update();
+			TouchRender();
+		}
+
+		function update() {
+			lat = Math.max(-85, Math.min(85, lat));
+			phi = THREE.Math.degToRad(90 - lat);
+			theta = THREE.Math.degToRad(lon);
+
+			camera.target.x = 500 * Math.sin(phi) * Math.cos(theta);
+			camera.target.y = 500 * Math.cos(phi);
+			camera.target.z = 500 * Math.sin(phi) * Math.sin(theta);
+
+      if (gyroAvailable && (_ua.Mobile || _ua.Tablet)){
+					camera.quaternion.copy(gyroQuaternion);
+			} else {
+					camera.lookAt(camera.target);
+			}
+
+			var keyVector = new THREE.Vector3(0, 0, 0);
+			if (game.input.up) keyVector.x += 1;
+			if (game.input.left) keyVector.z -= 1;
+			if (game.input.down) keyVector.x -= 1;
+			if (game.input.right) keyVector.z += 1;
+
+			if (!(keyVector.x == 0 && keyVector.z == 0)) {
+				if (keyVector.x > 0){
+					pos += 1;
+				}
+				if (keyVector.x < 0){
+					pos -= 1;
+				}
+				if(pos < 1) pos = 1;
+				if(pos > 65) pos = 65;
+
+  			scene.remove(sphere);
+	  		var geometry = new THREE.SphereGeometry(500, 60, 40);
+		  	geometry.scale(1, 1, -1);
+			  sphere = new THREE.Mesh(geometry, materials[pos - 1]);
+			  sphere.rotation.y = THREE.Math.degToRad(sphereAngleOffset);
+			  scene.add(sphere);
+        
+        socket.emit("client_to_server_broadcast",{position: pos})
+			}
+			renderer.render(scene, camera);
+		}
+
+		//タッチ場所の可視化プログラム
+		function TouchRender(){
+      if (UserAgent == "PC"){
+  			var str = "UserAgent : " + UserAgent + "<br>" + "Click : " + isUserInteracting + "<br>" + "Click pos X : " + onMouseDownMouseX + "<br>" + "Click pos Y : " + onMouseDownMouseY + "<br>" + "mouse pos X : " + MousePosX + "<br>" + "mouse pos Y : " + MousePosY + "<br>" + "filepath : " + pos + ".jpg";
+	  		str = str + "<br>" + "gesture : " + isGesture + "<br>" + "rotation : " + rotation + "<br>" + "scale : " + scale;
+		  	var debug = str + "<br>" + "debug : " + "<br>" + "pos : " + pos;
+			  document.getElementById("TouchText").innerHTML = str;
+  			// document.getElementById("TouchText").innerHTML = debug;
+      } else if (UserAgent == "Tablet" || "Mobile"){
+			var str = "UserAgent : " + UserAgent + "<br>" + "touch : " + isUserInteracting + "<br>";
+			for (var i = 0; i < touch_num; i++){
+				str = str + "touch num : " + (i + 1) + ",posX : " + touchposX[i] + ", posY : " + touchposY[i] + "<br>";
+			}
+			str = str + "<br>" + "filepath : " + pos + ".jpg" + "<br>" + "gesture : " + isGesture + "<br>" + "rotation : " + rotation + "<br>" + "scale : " + scale;
+			var debug = str + "<br>" + "debug : " + "<br>" + "pos : " + pos;
+			document.getElementById("TouchText").innerHTML = str;
+  			// document.getElementById("TouchText").innerHTML = debug;      
+      }
+		}
+    
+    function Change_pos(_pos){
+      pos = _pos;
+			scene.remove(sphere)
+			var geometry = new THREE.SphereGeometry(500, 60, 40);
+			geometry.scale(1, 1, -1);
+			sphere = new THREE.Mesh(geometry, materials[pos - 1]);
+			sphere.rotation.y = THREE.Math.degToRad(sphereAngleOffset);
+			scene.add(sphere)
+    }
+    
+	</script>
+</body>
+
+</html>
