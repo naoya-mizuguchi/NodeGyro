@@ -114,12 +114,20 @@
 		var touch_num = 0;
 		var touchposX = [];
 		var touchposY = []
+    var quaternion_log;
 
     var before_touch_pos_x = 0;
     var before_touch_pos_y = 0;
     var diff_sum_touch_pos_x = 0;
     var diff_sum_touch_pos_y = 0;
     var pos_change_flg = false;
+
+    var gyro = [0,0,0];
+    var change_flg = false;
+    var sum_plus_roll = 0;
+    var sum_minus_roll = 0;
+    var mobile_rotation = 0;
+    var offset = -30;
 
 
     var UserAgent = "";
@@ -138,7 +146,8 @@
 
     var socket = io.connect(); // C02. ソケットへの接続
     socket.on("server_to_client",function(data){Change_pos(data.position)});
-
+    socket.on("server_to_client_rotation",function(data){Change_rotate(data.rotation)});
+    
 		animate();
 
 		function init() {
@@ -159,11 +168,12 @@
         materials[i-1] = new THREE.MeshBasicMaterial({map : THREE.ImageUtils.loadTexture("Resources/path" + i + ".jpg")});
       }
 
-			sphere = new THREE.Mesh(geometry, materials[0]);
-			sphere.rotation.y = THREE.Math.degToRad(sphereAngleOffset);
+      if (UserAgent == "PC"){
+  			sphere = new THREE.Mesh(geometry, materials[0]);
+	  		sphere.rotation.y = THREE.Math.degToRad(sphereAngleOffset);
 
-			scene.add(sphere);
-
+		  	scene.add(sphere);
+      }
 
 			renderer = new THREE.WebGLRenderer();
 			renderer.setPixelRatio(window.devicePixelRatio);
@@ -179,7 +189,8 @@
 			window.addEventListener('gesturestart',onGestureStart, false);
 			window.addEventListener('gesturechange',onGestureChange, false);
 			window.addEventListener('gestureend',onGestureEnd, false);
-
+      window.addEventListener("deviceorientation", handleOrientation, true);
+      
 			if ("ongesturestart" in window) {
 					console.log("ok");
 			 	} else {
@@ -266,13 +277,15 @@
 			if(pos < 1) pos = 1;
 			if(pos > 65) pos = 65;
 
-			scene.remove(sphere);
-			var geometry = new THREE.SphereGeometry(500, 60, 40);
-			geometry.scale(1, 1, -1);
-			sphere = new THREE.Mesh(geometry, materials[pos - 1]);
-			sphere.rotation.y = THREE.Math.degToRad(sphereAngleOffset);
-			scene.add(sphere)
-      socket.emit("client_to_server_broadcast",{position: pos});
+      if (UserAgent == "PC"){
+        scene.remove(sphere);
+        var geometry = new THREE.SphereGeometry(500, 60, 40);
+        geometry.scale(1, 1, -1);
+        sphere = new THREE.Mesh(geometry, materials[pos - 1]);
+        sphere.rotation.y = THREE.Math.degToRad(sphereAngleOffset);
+        scene.add(sphere)
+        socket.emit("client_to_server_broadcast",{position: pos});
+      }
 		}
 
 		function onGestureStart(event) {
@@ -346,13 +359,16 @@
         if(pos < 1) pos = 1;
 	  		if(pos > 65) pos = 65;
 
-		  	scene.remove(sphere);
-			  var geometry = new THREE.SphereGeometry(500, 60, 40);
-			  geometry.scale(1, 1, -1);
-			  sphere = new THREE.Mesh(geometry, materials[pos - 1]);
-			  sphere.rotation.y = THREE.Math.degToRad(sphereAngleOffset);
-			  scene.add(sphere);
-
+        if (UserAgent == "PC"){
+          scene.remove(sphere);
+          var geometry = new THREE.SphereGeometry(500, 60, 40);
+          geometry.scale(1, 1, -1);
+          sphere = new THREE.Mesh(geometry, materials[pos - 1]);
+          sphere.rotation.y = THREE.Math.degToRad(sphereAngleOffset);
+          scene.add(sphere);
+        }
+        
+        
         socket.emit("client_to_server_broadcast",{position: pos});
 
         pos_change_flg = false;
@@ -383,19 +399,70 @@
 			TouchRender();
 		}
 
+    
+    function handleOrientation(event) {
+      var absolute = event.absolute;
+      var alpha    = event.alpha;
+      var beta     = event.beta;
+      var gamma    = event.gamma;
+
+      gyro = [alpha, beta, gamma];
+  }
+    
+    
+        
 		function update() {
 			lat = Math.max(-85, Math.min(85, lat));
 			phi = THREE.Math.degToRad(90 - lat);
-			theta = THREE.Math.degToRad(lon);
+			theta = THREE.Math.degToRad(lon - mobile_rotation);
 
 			camera.target.x = 500 * Math.sin(phi) * Math.cos(theta);
 			camera.target.y = 500 * Math.cos(phi);
 			camera.target.z = 500 * Math.sin(phi) * Math.sin(theta);
 
       if (gyroAvailable && (_ua.Mobile || _ua.Tablet)){
-					camera.quaternion.copy(gyroQuaternion);
+        console.log(gyro);
+        
+        
+        if ((gyro[1] + offset) > 0){
+          sum_plus_roll += (gyro[1] + offset);
+        }
+        if ((gyro[1] + offset) < 0){
+          sum_minus_roll += (gyro[1] + offset);
+        }
+        
+        if (sum_plus_roll >= 150){
+          change_flg = true;
+          pos -= 1;
+          sum_plus_roll = 0;
+        }
+        if (sum_minus_roll <= -150){
+          change_flg = true;
+          pos += 1;
+          sum_minus_roll = 0;
+        }
+        
+        socket.emit("client_to_server_broadcast_rotation",{rotation: gyro[0]});
+        
+  			
+        if (change_flg){
+				  if(pos < 1) {pos = 1; change_flg = false;}
+				  if(pos > 65) {pos = 65; change_flg = false;}
+
+          if (UserAgent == "PC"){
+            scene.remove(sphere);
+            var geometry = new THREE.SphereGeometry(500, 60, 40);
+            geometry.scale(1, 1, -1);
+            sphere = new THREE.Mesh(geometry, materials[pos - 1]);
+            sphere.rotation.y = THREE.Math.degToRad(sphereAngleOffset);
+            scene.add(sphere);
+          }
+          socket.emit("client_to_server_broadcast",{position: pos})
+          
+          change_flg = false;
+        }
 			} else {
-					camera.lookAt(camera.target);
+				camera.lookAt(camera.target);
 			}
 
 			var keyVector = new THREE.Vector3(0, 0, 0);
@@ -414,18 +481,22 @@
 				if(pos < 1) pos = 1;
 				if(pos > 65) pos = 65;
 
-  			scene.remove(sphere);
-	  		var geometry = new THREE.SphereGeometry(500, 60, 40);
-		  	geometry.scale(1, 1, -1);
-			  sphere = new THREE.Mesh(geometry, materials[pos - 1]);
-			  sphere.rotation.y = THREE.Math.degToRad(sphereAngleOffset);
-			  scene.add(sphere);
-
+        if (UserAgent == "PC"){
+    			scene.remove(sphere);
+	    		var geometry = new THREE.SphereGeometry(500, 60, 40);
+		    	geometry.scale(1, 1, -1);
+			    sphere = new THREE.Mesh(geometry, materials[pos - 1]);
+			    sphere.rotation.y = THREE.Math.degToRad(sphereAngleOffset);
+			    scene.add(sphere);
+        }
+        
         socket.emit("client_to_server_broadcast",{position: pos})
 			}
 			renderer.render(scene, camera);
 		}
 
+    
+    
 		//タッチ場所の可視化プログラム
 		function TouchRender(){
       if (UserAgent == "PC"){
@@ -439,7 +510,7 @@
 			for (var i = 0; i < touch_num; i++){
 				str = str + "touch num : " + (i + 1) + ",posX : " + touchposX[i] + ", posY : " + touchposY[i] + "<br>";
 			}
-			str = str + "<br>" + "filepath : " + pos + ".jpg" + "<br>" + "gesture : " + isGesture + "<br>" + "rotation : " + rotation + "<br>" + "scale : " + scale;
+			// str = str + "<br>" + "filepath : " + pos + ".jpg" + "<br>" + "gesture : " + isGesture + "<br>" + "rotation : " + rotation + "<br>" + "scale : " + scale + "<br>" + "quaternion : " + "[" + quaternion_log.x + ", " + quaternion_log.y + ", " + quaternion_log.z + ", " + quaternion_log.w + "]";
 			var debug = str + "<br>" + "debug : " + "<br>" + "pos : " + pos;
 			document.getElementById("TouchText").innerHTML = str;
   			// document.getElementById("TouchText").innerHTML = debug;
@@ -448,12 +519,18 @@
 
     function Change_pos(_pos){
       pos = _pos;
-			scene.remove(sphere)
-			var geometry = new THREE.SphereGeometry(500, 60, 40);
-			geometry.scale(1, 1, -1);
-			sphere = new THREE.Mesh(geometry, materials[pos - 1]);
-			sphere.rotation.y = THREE.Math.degToRad(sphereAngleOffset);
-			scene.add(sphere)
+      if (UserAgent == "PC"){
+        scene.remove(sphere)
+        var geometry = new THREE.SphereGeometry(500, 60, 40);
+        geometry.scale(1, 1, -1);
+        sphere = new THREE.Mesh(geometry, materials[pos - 1]);
+        sphere.rotation.y = THREE.Math.degToRad(sphereAngleOffset);
+        scene.add(sphere)
+      }
+    }
+    
+    function Change_rotate(_rotation){
+      mobile_rotation = _rotation;
     }
 
 	</script>
